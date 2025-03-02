@@ -20,16 +20,11 @@ class EmployeeRepository
         return $this->model->destroy($id);
     }
 
-    public function createOrUpdate(array $attributes, int $empId): Employee
+    public function updateOrCreate(int $empId, array $attributes): Employee
     {
         return $this->model->updateOrCreate(
             ['emp_id' => $empId],
             $attributes
         );
-    }
-
-    public function all()
-    {
-        return $this->model->all();
     }
 }

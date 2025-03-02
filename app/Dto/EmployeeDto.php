@@ -34,13 +34,25 @@ class EmployeeDto
     {
         self::validate($data);
 
+        try {
+            $dateOfBirth = Carbon::createFromFormat('m/d/Y', $data['Date of Birth']);
+        } catch (\Exception $e) {
+            throw new InvalidArgumentException("Invalid Date of Birth format: {$data['Date of Birth']}");
+        }
+
+        try {
+            $dateOfJoining = Carbon::createFromFormat('m/d/Y', $data['Date of Joining']);
+        } catch (\Exception $e) {
+            throw new InvalidArgumentException("Invalid Date of Joining format: {$data['Date of Joining']}");
+        }
+
         return new self(
             empId: (int) $data['Emp ID'],
             firstName: $data['First Name'],
             lastName: $data['Last Name'],
             email: $data['E Mail'],
-            dateOfBirth: Carbon::createFromFormat('m/d/Y', $data['Date of Birth']),
-            dateOfJoining: Carbon::createFromFormat('m/d/Y', $data['Date of Joining']),
+            dateOfBirth: $dateOfBirth,
+            dateOfJoining: $dateOfJoining,
             phoneNumber: $data['Phone No. '],
             namePrefix: $data['Name Prefix'] ?? null,
             middleInitial: $data['Middle Initial'] ?? null,

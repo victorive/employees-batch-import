@@ -14,6 +14,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Throwable;
 use App\Interfaces\FileProcessor;
+use App\Repositories\EmployeeRepository;
 use App\Utilities\CsvUtility;
 
 class ImportEmployeesJob implements ShouldQueue
@@ -41,7 +42,7 @@ class ImportEmployeesJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(FileProcessorFactory $fileProcessorFactory): void
+    public function handle(FileProcessorFactory $fileProcessorFactory, EmployeeRepository $employeeRepository): void
     {
         try {
             $processor = $fileProcessorFactory->getProcessor($this->format);
@@ -49,8 +50,8 @@ class ImportEmployeesJob implements ShouldQueue
 
             $processor->process($filePath, $this->delimiter)
                 ->chunk(self::CHUNK_SIZE)
-                ->each(function (LazyCollection $chunk) use ($processor) {
-                    $this->processChunk($chunk, $processor);
+                ->each(function (LazyCollection $chunk) use ($processor, $employeeRepository) {
+                    $this->processChunk($chunk, $processor, $employeeRepository);
                 });
 
             Storage::delete($this->filePath);
@@ -65,24 +66,27 @@ class ImportEmployeesJob implements ShouldQueue
         }
     }
 
-    private function processChunk(LazyCollection $chunk, FileProcessor $processor): void
+    private function processChunk(LazyCollection $chunk, FileProcessor $processor, EmployeeRepository $employeeRepository): void
     {
         DB::beginTransaction();
         try {
-            $chunk->each(function (array $row) use ($processor) {
+            $chunk->each(function (array $row) use ($processor, $employeeRepository) {
                 try {
                     $employee = EmployeeDto::fromArray($row);
-                    Employee::updateOrCreate(
-                        ['emp_id' => $employee->empId],
+
+                    $employeeRepository->updateOrCreate(
+                        $employee->empId,
                         $employee->toDatabaseArray()
                     );
-                } catch (InvalidArgumentException $e) {
+                } catch (Throwable $e) {
                     $this->logFailedRecord($row, $e->getMessage(), $processor);
                 }
             });
             DB::commit();
         } catch (Throwable $exception) {
             DB::rollBack();
+
+            Log::error("Chunk failed: {$exception->getMessage()}");
             throw $exception;
         }
     }

@@ -1,66 +1,96 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Employees Batch Import
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Setup Instructions
 
-## About Laravel
+### Without Docker:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **PHP 8.2+**
+- **Composer**
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**Step 1:** Clone the repository in your terminal using `https://github.com/victorive/employees-batch-import.git`
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**Step 2:** Navigate to the project’s directory using `cd employees-batch-import`
 
-## Learning Laravel
+**Step 3:** Run `composer install` to install the project’s dependencies.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+**Step 4:** Run `cp .env.example .env` to create the .env file for the project’s configuration.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+**Step 5:** Run `php artisan key:generate` to set the application key.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Step 6:** Create a database with the name **employees_batch_import** or any name of your choice in your current database
+server and configure the DB_DATABASE, DB_USERNAME and DB_PASSWORD credentials respectively, in the .env files located in
+the project’s root folder. eg.
 
-## Laravel Sponsors
+> DB_DATABASE={{your database name}}
+>
+> DB_USERNAME= {{your database username}}
+>
+> DB_PASSWORD= {{your database password}}
+>
+>
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+**Step 7:** Run `php artisan migrate` to create your database tables.
 
-### Premium Partners
+**Step 8:** Run `php artisan queue:work` to run the jobs for caching the images contained in each item in the feed. To assign 
+multiple workers to the queue and process jobs concurrently, you can start multiple `queue:work` processes by opening up 
+multiple tabs in your terminal and running the command.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+**Step 9:** Run `php artisan serve` to serve your application, then use the link generated to access the app via any
+API testing tool of your choice.
 
-## Contributing
+## API Endpoints
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **POST** `/api/employee` - Import CSV
+- **GET** `/api/employee/{id}` - Get employee
+- **DELETE** `/api/employee/{id}` - Delete employee
 
-## Code of Conduct
+## Import CSV
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+To import a CSV file, use the following command:
+```bash
+curl -X POST -F "file=@import.csv" http://localhost:8000/api/employee
+```
 
-## Security Vulnerabilities
+## What I Would Have Done Differently/Additionally
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+If this were a real-world production scenario, I would have implemented the following enhancements to make the system more robust, secure, and user-friendly:
 
-## License
+### 1. **Authentication & Role-Based Access Control (RBAC)**
+   - Add an **authentication layer** (e.g., JWT or OAuth2) to secure the API.
+   - Implement **RBAC** to ensure only authorized users with specific roles (e.g., `admin`, `manager`) can execute sensitive operations like importing or deleting employees.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 2. **Job Status Notifications**
+   - Send **real-time notifications** (via WebSocket, Email, SMS, or Push) to users when:
+     - An import job starts.
+     - A job completes successfully.
+     - A job fails or encounters errors.
+   - This ensures users are informed about the status of long-running processes without manually polling the system.
+
+### 3. **Uniform Response Utility**
+   - Create a **response wrapper utility** to standardize API responses. For example:
+     ```json
+     {
+       "status": true,
+       "message": "Some message",
+       "data": { ... },
+       "meta": { ... } // Pagination or additional metadata
+     }
+     ```
+   - This ensures consistency across all endpoints and simplifies client-side handling.
+
+### 4. **Enhanced Test Coverage**
+   - Add more **edge-case test scenarios**, such as:
+     - Importing files with missing or malformed headers.
+     - Handling extremely large files (>1GB).
+     - Testing with different delimiters and file encodings.
+     - Simulating database failures or network interruptions during imports.
+
+### 5. **Job Progress Tracking**
+   - Add an endpoint to **poll the status of a job** (e.g., `GET /api/jobs/{id}`) with details like:
+     - Total rows processed.
+     - Rows succeeded/failed.
+     - Estimated time remaining.
+   - This allows users to monitor the progress of long-running jobs in real-time.
+
+### 6. Add **rate limiting** to prevent abuse of the import endpoint
+---
